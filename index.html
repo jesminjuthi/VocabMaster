@@ -38,6 +38,21 @@
   </head>
   <body class="bg-gray-100 h-screen flex flex-col items-center">
     <div
+      id="toast"
+      class="fixed top-6 left-1/2 -translate-x-1/2 z-[100] hidden transition-all duration-300 transform -translate-y-full opacity-0"
+    >
+      <div
+        class="bg-gray-900/95 backdrop-blur text-white px-5 py-3 rounded-full shadow-2xl flex items-center gap-3 text-sm font-bold border border-gray-700"
+      >
+        <i
+          id="toastIcon"
+          class="fa-solid fa-triangle-exclamation text-yellow-400 text-lg"
+        ></i>
+        <span id="toastMessage">Warning Message Here</span>
+      </div>
+    </div>
+
+    <div
       class="w-full max-w-md h-full bg-white shadow-2xl flex flex-col relative overflow-hidden"
     >
       <div class="p-4 bg-white border-b shadow-sm sticky top-0 z-10">
@@ -106,12 +121,19 @@
           >
             <i class="fa-solid fa-chevron-left"></i>
           </button>
-          <div class="text-center">
+          <div class="text-center flex flex-col items-center">
             <span class="block text-[10px] text-gray-400 font-bold uppercase"
               >Current Group</span
-            ><span id="dayIndicator" class="text-base font-bold text-indigo-900"
+            >
+            <span id="dayIndicator" class="text-base font-bold text-indigo-900"
               >Day 1</span
             >
+            <span
+              id="wordCountBadge"
+              class="block text-[10px] font-bold text-indigo-600 bg-indigo-100 rounded-full px-2 mt-0.5"
+            >
+              0/30 Words
+            </span>
           </div>
           <button
             onclick="changeDay(1)"
@@ -272,7 +294,7 @@
           </button>
         </div>
         <p class="text-xs text-gray-500 mb-2">
-          Paste text below. It handles Synonyms/Antonyms correctly.
+          Paste text below. Max 30 words per day allowed.
         </p>
         <textarea
           id="smartImportInput"
@@ -298,89 +320,201 @@
 
     <div
       id="addModal"
-      class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-4"
+      class="fixed inset-0 bg-gray-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 transition-opacity"
     >
       <div
-        class="bg-white w-full max-w-sm rounded-2xl p-5 shadow-xl h-4/5 flex flex-col"
+        class="bg-white w-full max-w-md rounded-2xl shadow-2xl h-[85vh] flex flex-col overflow-hidden animate-slide-up"
       >
-        <div class="flex justify-between items-center mb-4">
-          <h2 class="text-lg font-bold">
-            <span id="addModalTitle">Add Word</span>
-            <span class="text-indigo-600 text-sm" id="addModalDayLabel"></span>
-          </h2>
-          <button onclick="closeModal('addModal')">
-            <i class="fa-solid fa-xmark text-gray-400"></i>
-          </button>
-        </div>
-        <form
-          id="addWordForm"
-          class="space-y-3 flex-1 overflow-y-auto custom-scroll pr-1"
+        <div
+          class="flex justify-between items-center p-5 border-b bg-gray-50/80"
         >
-          <input type="hidden" id="editId" />
-          <input
-            type="text"
-            id="inpWord"
-            placeholder="Word"
-            class="w-full border-b-2 p-2 focus:border-indigo-500 outline-none font-bold text-lg"
-            required
-          />
-          <input
-            type="text"
-            id="inpMeaningBn"
-            placeholder="Bangla Meaning"
-            class="w-full border p-2 rounded bg-gray-50 font-hind"
-            required
-          />
-          <div class="grid grid-cols-2 gap-2">
-            <input
-              type="text"
-              id="inpPhonetic"
-              placeholder="Phonetic"
-              class="w-full border p-2 rounded bg-gray-50 text-xs"
-            />
-            <input
-              type="text"
-              id="inpPos"
-              placeholder="POS"
-              class="w-full border p-2 rounded bg-gray-50 text-xs"
-            />
-          </div>
-          <textarea
-            id="inpDefEng"
-            placeholder="English Definition"
-            class="w-full border p-2 rounded bg-gray-50 text-xs h-16"
-          ></textarea>
-          <input
-            type="text"
-            id="inpExample"
-            placeholder="Example"
-            class="w-full border p-2 rounded bg-gray-50 text-xs"
-          />
-          <div class="grid grid-cols-2 gap-2">
-            <input
-              type="text"
-              id="inpSyn"
-              placeholder="Synonyms"
-              class="w-full border p-2 rounded bg-gray-50 text-xs"
-            />
-            <input
-              type="text"
-              id="inpAnt"
-              placeholder="Antonyms"
-              class="w-full border p-2 rounded bg-gray-50 text-xs"
-            />
+          <div>
+            <h2
+              class="text-xl font-extrabold text-gray-800 flex items-center gap-2"
+            >
+              <i class="fa-solid fa-book-medical text-indigo-600"></i>
+              <span id="addModalTitle">Add New Word</span>
+            </h2>
+            <p class="text-xs text-gray-500 font-medium mt-1">
+              Adding to
+              <span
+                class="text-indigo-600 font-bold"
+                id="addModalDayLabel"
+              ></span>
+            </p>
           </div>
           <button
-            type="submit"
-            class="w-full py-2 bg-indigo-600 text-white rounded-lg font-bold mt-2"
+            onclick="closeModal('addModal')"
+            class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-red-50 text-gray-400 hover:text-red-500 transition"
           >
-            Save Word
+            <i class="fa-solid fa-xmark text-lg"></i>
           </button>
+        </div>
+
+        <form id="addWordForm" class="flex flex-col h-full overflow-hidden">
+          <input type="hidden" id="editId" />
+
+          <div class="flex-1 overflow-y-auto custom-scroll p-5 space-y-6">
+            <div
+              class="bg-indigo-50/50 p-4 rounded-xl border border-indigo-100 relative overflow-hidden"
+            >
+              <div class="absolute top-0 left-0 w-1 h-full bg-indigo-500"></div>
+              <div class="space-y-4">
+                <div>
+                  <label
+                    class="text-[11px] font-bold text-indigo-800 uppercase tracking-wider mb-1.5 flex items-center gap-1"
+                  >
+                    Word <span class="text-red-500 text-sm">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    id="inpWord"
+                    placeholder="e.g. Abate"
+                    class="w-full border-b-2 border-indigo-200 p-2 focus:border-indigo-600 outline-none font-extrabold text-xl bg-transparent transition-colors text-gray-800 placeholder-gray-300"
+                    required
+                  />
+                </div>
+                <div>
+                  <label
+                    class="text-[11px] font-bold text-indigo-800 uppercase tracking-wider mb-1.5 flex items-center gap-1"
+                  >
+                    Bangla Meaning <span class="text-red-500 text-sm">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    id="inpMeaningBn"
+                    placeholder="e.g. কমানো / হ্রাস করা"
+                    class="w-full border border-white bg-white p-2.5 rounded-lg font-hind text-sm focus:ring-2 focus:ring-indigo-300 outline-none transition-shadow shadow-sm text-gray-700 placeholder-gray-300"
+                    required
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="text-xs font-bold text-gray-600 mb-1.5 block">
+                  Phonetic
+                  <span class="text-gray-400 font-normal">(Optional)</span>
+                </label>
+                <div class="relative">
+                  <div
+                    class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"
+                  >
+                    <i class="fa-solid fa-volume-low text-gray-400 text-xs"></i>
+                  </div>
+                  <input
+                    type="text"
+                    id="inpPhonetic"
+                    placeholder="/əˈbeɪt/"
+                    class="w-full border border-gray-200 py-2.5 pl-8 pr-3 rounded-lg bg-gray-50 text-xs focus:ring-2 focus:ring-indigo-200 outline-none focus:bg-white transition-colors"
+                  />
+                </div>
+              </div>
+              <div>
+                <label class="text-xs font-bold text-gray-600 mb-1.5 block"
+                  >Parts of Speech</label
+                >
+                <div class="relative">
+                  <select
+                    id="inpPos"
+                    class="w-full border border-gray-200 p-2.5 rounded-lg bg-gray-50 text-xs focus:ring-2 focus:ring-indigo-200 outline-none text-gray-700 appearance-none focus:bg-white transition-colors cursor-pointer"
+                  >
+                    <option value="n.">Noun (n.)</option>
+                    <option value="v.">Verb (v.)</option>
+                    <option value="adj.">Adjective (adj.)</option>
+                    <option value="adv.">Adverb (adv.)</option>
+                    <option value="prep.">Preposition (prep.)</option>
+                    <option value="conj.">Conjunction (conj.)</option>
+                    <option value="phrase">Phrase/Idiom</option>
+                  </select>
+                  <div
+                    class="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none"
+                  >
+                    <i
+                      class="fa-solid fa-chevron-down text-gray-400 text-[10px]"
+                    ></i>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="space-y-4">
+              <div>
+                <label class="text-xs font-bold text-gray-600 mb-1.5 block"
+                  >English Definition</label
+                >
+                <textarea
+                  id="inpDefEng"
+                  placeholder="Write a simple definition..."
+                  class="w-full border border-gray-200 p-3 rounded-lg bg-gray-50 text-xs h-16 resize-none focus:ring-2 focus:ring-indigo-200 outline-none focus:bg-white transition-colors placeholder-gray-300"
+                ></textarea>
+              </div>
+              <div>
+                <label class="text-xs font-bold text-gray-600 mb-1.5 block"
+                  >Example Sentence</label
+                >
+                <div class="relative">
+                  <div
+                    class="absolute inset-y-0 left-0 pl-3 pt-2.5 pointer-events-none"
+                  >
+                    <i class="fa-solid fa-quote-left text-gray-300 text-xs"></i>
+                  </div>
+                  <textarea
+                    id="inpExample"
+                    placeholder="The storm suddenly abated..."
+                    class="w-full border border-gray-200 py-2.5 pl-8 pr-3 rounded-lg bg-gray-50 text-xs h-16 resize-none focus:ring-2 focus:ring-indigo-200 outline-none focus:bg-white transition-colors placeholder-gray-300"
+                  ></textarea>
+                </div>
+              </div>
+            </div>
+
+            <div
+              class="grid grid-cols-2 gap-4 bg-gray-50 p-4 rounded-xl border border-gray-100"
+            >
+              <div>
+                <label
+                  class="text-[10px] font-bold text-teal-600 uppercase tracking-widest mb-1.5 flex items-center gap-1 block"
+                >
+                  <i class="fa-solid fa-link text-teal-400"></i> Synonyms
+                </label>
+                <input
+                  type="text"
+                  id="inpSyn"
+                  placeholder="Similar words..."
+                  class="w-full border border-gray-200 p-2.5 rounded-lg text-xs focus:ring-2 focus:ring-teal-200 outline-none bg-white transition-shadow placeholder-gray-300"
+                />
+              </div>
+              <div>
+                <label
+                  class="text-[10px] font-bold text-rose-500 uppercase tracking-widest mb-1.5 flex items-center gap-1 block"
+                >
+                  <i class="fa-solid fa-link-slash text-rose-400"></i> Antonyms
+                </label>
+                <input
+                  type="text"
+                  id="inpAnt"
+                  placeholder="Opposite words..."
+                  class="w-full border border-gray-200 p-2.5 rounded-lg text-xs focus:ring-2 focus:ring-rose-200 outline-none bg-white transition-shadow placeholder-gray-300"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div class="p-4 bg-white border-t mt-auto">
+            <button
+              type="submit"
+              class="w-full py-3.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white rounded-xl font-bold shadow-lg shadow-indigo-200 transition-all active:scale-95 flex justify-center items-center gap-2 text-sm"
+            >
+              <i class="fa-solid fa-cloud-arrow-up"></i> Save to Vocabulary
+            </button>
+          </div>
         </form>
       </div>
     </div>
 
     <script>
+      const MAX_WORDS_PER_DAY = 30; // Maximum allowed limit
       let currentDay = 1;
       let words = [];
       let currentViewingId = null;
@@ -414,6 +548,7 @@
         localStorage.setItem("vocabProData", JSON.stringify(words));
         localStorage.setItem("vocabCurrentDay", currentDay);
       }
+
       function changeDay(dir) {
         const newDay = currentDay + dir;
         if (newDay < 1) return;
@@ -422,14 +557,61 @@
         renderList();
         saveData();
       }
+
+      // Updated UI to show Word Count Badge
       function updateDayUI() {
         document.getElementById("dayIndicator").innerText = `Day ${currentDay}`;
+
+        const dayWordsCount = words.filter((w) => w.day === currentDay).length;
+        const badge = document.getElementById("wordCountBadge");
+        badge.innerText = `${dayWordsCount}/${MAX_WORDS_PER_DAY} Words`;
+
+        // Change color to red if limit reached
+        if (dayWordsCount >= MAX_WORDS_PER_DAY) {
+          badge.classList.replace("bg-indigo-100", "bg-red-100");
+          badge.classList.replace("text-indigo-600", "text-red-600");
+        } else {
+          badge.classList.replace("bg-red-100", "bg-indigo-100");
+          badge.classList.replace("text-red-600", "text-indigo-600");
+        }
+      }
+
+      // Toast Notification Logic
+      function showToast(message, type = "warning") {
+        const toast = document.getElementById("toast");
+        const msgEl = document.getElementById("toastMessage");
+        const iconEl = document.getElementById("toastIcon");
+
+        msgEl.innerText = message;
+        if (type === "warning") {
+          iconEl.className =
+            "fa-solid fa-triangle-exclamation text-yellow-400 text-lg";
+        } else if (type === "error") {
+          iconEl.className = "fa-solid fa-circle-xmark text-red-500 text-lg";
+        } else {
+          iconEl.className = "fa-solid fa-circle-check text-green-400 text-lg";
+        }
+
+        toast.classList.remove("hidden");
+        setTimeout(() => {
+          toast.classList.remove("-translate-y-full", "opacity-0");
+          toast.classList.add("translate-y-0", "opacity-100");
+        }, 10);
+
+        setTimeout(() => {
+          toast.classList.remove("translate-y-0", "opacity-100");
+          toast.classList.add("-translate-y-full", "opacity-0");
+          setTimeout(() => toast.classList.add("hidden"), 300);
+        }, 4000); // Hides after 4 seconds
       }
 
       function renderList() {
         const container = document.getElementById("wordList");
         container.innerHTML = "";
         const dayWords = words.filter((w) => w.day === currentDay);
+
+        updateDayUI(); // Ensure UI is always perfectly synced
+
         if (dayWords.length === 0) {
           container.innerHTML = `<div class="text-center py-20 text-gray-400"><p class="text-sm font-bold">No words in Day ${currentDay}</p></div>`;
           return;
@@ -473,7 +655,6 @@
         document.getElementById("mExample").innerText = item.example
           ? `"${item.example}"`
           : "";
-        // Fix: Fallback to '-' if empty
         document.getElementById("mSyn").innerText = item.syn || "-";
         document.getElementById("mAnt").innerText = item.ant || "-";
         document.getElementById("wordModal").classList.remove("hidden");
@@ -507,19 +688,26 @@
           document.getElementById("inpWord").value = editingItem.word;
           document.getElementById("inpMeaningBn").value = editingItem.meaningBn;
           document.getElementById("inpPhonetic").value = editingItem.phonetic;
-          document.getElementById("inpPos").value = editingItem.pos;
+
+          const posSelect = document.getElementById("inpPos");
+          if (
+            [...posSelect.options].some((opt) => opt.value === editingItem.pos)
+          ) {
+            posSelect.value = editingItem.pos;
+          }
+
           document.getElementById("inpDefEng").value = editingItem.defEng;
           document.getElementById("inpExample").value = editingItem.example;
           document.getElementById("inpSyn").value = editingItem.syn || "";
           document.getElementById("inpAnt").value = editingItem.ant || "";
         } else {
-          document.getElementById("addModalTitle").innerText = "Add Word";
+          document.getElementById("addModalTitle").innerText = "Add New Word";
           form.reset();
           document.getElementById("editId").value = "";
         }
         document.getElementById("addModalDayLabel").innerText = editingItem
-          ? `(Day ${editingItem.day})`
-          : `(Day ${currentDay})`;
+          ? `Day ${editingItem.day}`
+          : `Day ${currentDay}`;
       }
 
       document
@@ -527,6 +715,21 @@
         .addEventListener("submit", function (e) {
           e.preventDefault();
           const editId = document.getElementById("editId").value;
+
+          // Validation: Limit Check for New Words
+          if (!editId) {
+            const currentDayCount = words.filter(
+              (w) => w.day === currentDay,
+            ).length;
+            if (currentDayCount >= MAX_WORDS_PER_DAY) {
+              showToast(
+                `Day ${currentDay} already has ${MAX_WORDS_PER_DAY} words! Please move to the next day to add more.`,
+                "error",
+              );
+              return; // Halt the submission
+            }
+          }
+
           const wordData = {
             word: document.getElementById("inpWord").value,
             meaningBn: document.getElementById("inpMeaningBn").value,
@@ -555,13 +758,29 @@
           closeModal("addModal");
         });
 
-      // --- FIXED SMART IMPORT LOGIC ---
       function processSmartImport() {
         const text = document.getElementById("smartImportInput").value;
         if (!text.trim()) return;
-        const blocks = text.split(/\n(?=\d+\.)/g);
-        let count = 0;
 
+        const blocks = text
+          .split(/\n(?=\d+\.)/g)
+          .filter((b) => b.trim().length > 0);
+
+        // Validation: Limit Check for Import
+        const currentDayCount = words.filter(
+          (w) => w.day === currentDay,
+        ).length;
+        const availableSlots = MAX_WORDS_PER_DAY - currentDayCount;
+
+        if (blocks.length > availableSlots) {
+          showToast(
+            `Warning: You pasted ${blocks.length} words, but Day ${currentDay} only has space for ${availableSlots} more words. Please reduce words or change day.`,
+            "error",
+          );
+          return; // Block the import entirely to prevent mess
+        }
+
+        let count = 0;
         blocks.forEach((block, index) => {
           const rawLines = block
             .split("\n")
@@ -571,21 +790,17 @@
           const wordLine = rawLines[0].replace(/^\d+\.\s*/, "").trim();
 
           const fullBlockStr = block.replace(/\n/g, " ");
-
           const phoneticMatch = fullBlockStr.match(/(\/.*?\/?\/)/);
           const meaningMatch = fullBlockStr.match(/\(([^)]+)\)/);
-
           const defMatch = fullBlockStr.match(
             /Definition:\s*(.*?)(?=Example:|Synonym:|Antonym:|$)/i,
           );
           const exMatch = fullBlockStr.match(
             /Example:\s*["“]?(.*?)["”]?(?=Synonym:|Antonym:|$)/i,
           );
-
           const synMatch = fullBlockStr.match(
             /Synonyms?:\s*(.+?)(?=\s*Antonyms?:|$)/i,
           );
-
           const antMatch = fullBlockStr.match(/Antonyms?:\s*(.+?)$/i);
 
           let pos = "n.";
@@ -611,7 +826,7 @@
         saveData();
         renderList();
         closeModal("smartImportModal");
-        alert(`Imported ${count} words with Syn/Ant!`);
+        showToast(`Imported ${count} words successfully!`, "success");
       }
 
       function setWordStatus(status) {
@@ -624,6 +839,7 @@
           closeModal("wordModal");
         }
       }
+
       function speakWord() {
         const word = document.getElementById("mWord").innerText;
         if (word) {
