@@ -324,7 +324,7 @@
           >
             <span
               id="mPhonetic"
-              class="font-mono bg-black/30 px-2 py-0.5 rounded hidden"
+              class="bg-black/20 dark:bg-black/40 px-3 py-1 rounded-full font-hind hidden"
             ></span>
           </div>
         </div>
@@ -491,7 +491,7 @@
         <p
           class="text-[11px] md:text-xs text-gray-500 dark:text-gray-400 mb-2 transition-colors"
         >
-          Paste text below. It dynamically supports your new format.
+          Paste text below. Max 30 words per day allowed.
         </p>
         <textarea
           id="smartImportInput"
@@ -1145,7 +1145,18 @@
           if (!firstLineMatch) return;
           const wordLine = firstLineMatch[1].trim();
 
-          const phoneticMatch = block.match(/(\/.*?\/?\/)/);
+          const pronMatch = block.match(
+            new RegExp(`Pronounce:?\\s*([\\s\\S]*?)\\s*${stopAt}`, "i"),
+          );
+          let phoneticText = "";
+          if (pronMatch) {
+
+            phoneticText = pronMatch[1].trim().replace(/\s*\n\s*/g, " ");
+          } else {
+
+            const fallbackPhonMatch = block.match(/(\/.*?\/?\/)/);
+            if (fallbackPhonMatch) phoneticText = fallbackPhonMatch[1];
+          }
 
           const defMatch = block.match(
             new RegExp(`English:?\\s*([\\s\\S]*?)\\s*${stopAt}`, "i"),
@@ -1168,11 +1179,10 @@
             day: targetDay,
             status: "neutral",
             word: wordLine,
-            phonetic: phoneticMatch ? phoneticMatch[1] : "",
+            phonetic: phoneticText,
             meaningBn: meaningMatch ? meaningMatch[1].trim() : "",
-            pos: "n.", 
+            pos: "n.",
             defEng: defMatch ? defMatch[1].trim() : "",
-            
             example: exMatch
               ? exMatch[1].trim().replace(/^["“']|["”']$/g, "")
               : "",
