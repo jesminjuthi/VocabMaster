@@ -491,7 +491,7 @@
         <p
           class="text-[11px] md:text-xs text-gray-500 dark:text-gray-400 mb-2 transition-colors"
         >
-          Paste text below. Max 30 words per day allowed.
+          Paste text below. It dynamically supports your new format.
         </p>
         <textarea
           id="smartImportInput"
@@ -1110,6 +1110,7 @@
           closeModal("addModal");
         });
 
+      /* --- SMART IMPORT --- */
       function processSmartImport() {
         const text = document.getElementById("smartImportInput").value;
         if (!text.trim()) return;
@@ -1117,8 +1118,9 @@
         const targetDay =
           parseInt(document.getElementById("smartImportDay").value) ||
           currentDay;
+
         const blocks = text
-          .split(/\n(?=\d+\.)/g)
+          .split(/(?:^|\n)(?=\d+\.\s)/g)
           .filter((b) => b.trim().length > 0);
 
         const targetDayCount = words.filter((w) => w.day === targetDay).length;
@@ -1133,31 +1135,33 @@
         }
 
         let count = 0;
+
+        const stopAt =
+          "(?=English:?|Bangla:?|Synonyms?:?|Antonyms?:?|Example:?|Pronounce:?|$)";
+
         blocks.forEach((block, index) => {
-          const rawLines = block
-            .split("\n")
-            .map((l) => l.trim())
-            .filter((l) => l.length > 0);
-          if (rawLines.length < 2) return;
-          const wordLine = rawLines[0].replace(/^\d+\.\s*/, "").trim();
 
-          const fullBlockStr = block.replace(/\n/g, " ");
-          const phoneticMatch = fullBlockStr.match(/(\/.*?\/?\/)/);
-          const meaningMatch = fullBlockStr.match(/\(([^)]+)\)/);
-          const defMatch = fullBlockStr.match(
-            /Definition:\s*(.*?)(?=Example:|Synonym:|Antonym:|$)/i,
-          );
-          const exMatch = fullBlockStr.match(
-            /Example:\s*["“]?(.*?)["”]?(?=Synonym:|Antonym:|$)/i,
-          );
-          const synMatch = fullBlockStr.match(
-            /Synonyms?:\s*(.+?)(?=\s*Antonyms?:|$)/i,
-          );
-          const antMatch = fullBlockStr.match(/Antonyms?:\s*(.+?)$/i);
+          const firstLineMatch = block.match(/^\s*\d+\.\s*([^\n]+)/);
+          if (!firstLineMatch) return;
+          const wordLine = firstLineMatch[1].trim();
 
-          let pos = "n.";
-          const posMatch = fullBlockStr.match(/\b(n\.|v\.|adj\.|adv\.)\b/i);
-          if (posMatch) pos = posMatch[1];
+          const phoneticMatch = block.match(/(\/.*?\/?\/)/);
+
+          const defMatch = block.match(
+            new RegExp(`English:?\\s*([\\s\\S]*?)\\s*${stopAt}`, "i"),
+          );
+          const meaningMatch = block.match(
+            new RegExp(`Bangla:?\\s*([\\s\\S]*?)\\s*${stopAt}`, "i"),
+          );
+          const synMatch = block.match(
+            new RegExp(`Synonyms?:?\\s*([\\s\\S]*?)\\s*${stopAt}`, "i"),
+          );
+          const antMatch = block.match(
+            new RegExp(`Antonyms?:?\\s*([\\s\\S]*?)\\s*${stopAt}`, "i"),
+          );
+          const exMatch = block.match(
+            new RegExp(`Example:?\\s*([\\s\\S]*?)\\s*${stopAt}`, "i"),
+          );
 
           const newWord = {
             id: Date.now() + index,
@@ -1166,9 +1170,12 @@
             word: wordLine,
             phonetic: phoneticMatch ? phoneticMatch[1] : "",
             meaningBn: meaningMatch ? meaningMatch[1].trim() : "",
-            pos: pos,
+            pos: "n.", 
             defEng: defMatch ? defMatch[1].trim() : "",
-            example: exMatch ? exMatch[1].trim() : "",
+            
+            example: exMatch
+              ? exMatch[1].trim().replace(/^["“']|["”']$/g, "")
+              : "",
             syn: synMatch ? synMatch[1].trim() : "",
             ant: antMatch ? antMatch[1].trim() : "",
           };
@@ -1176,11 +1183,18 @@
           count++;
         });
 
-        currentDay = targetDay;
-        saveData();
-        renderList();
-        closeModal("smartImportModal");
-        showToast(`Imported ${count} words to Day ${targetDay}!`, "success");
+        if (count > 0) {
+          currentDay = targetDay;
+          saveData();
+          renderList();
+          closeModal("smartImportModal");
+          showToast(`Imported ${count} words to Day ${targetDay}!`, "success");
+        } else {
+          showToast(
+            "Could not extract any words. Please check your text format.",
+            "error",
+          );
+        }
       }
 
       function setWordStatus(status) {
